@@ -6,6 +6,8 @@ import Divider from '@mui/material/Divider'
 import LinearProgress from '@mui/material/LinearProgress'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+
 import Typography from '@mui/material/Typography'
 import { utils } from 'ethers'
 import { useState } from 'react'
@@ -31,6 +33,7 @@ const RelayerKitDemo = () => {
 
     isRelayerLoading,
     relayTransaction,
+    relaySendTransaction,
     gelatoTaskId,
 
     isAuthenticated,
@@ -38,6 +41,13 @@ const RelayerKitDemo = () => {
   } = useAccountAbstraction()
 
   const [transactionHash, setTransactionHash] = useState<string>('')
+  // Nuevos estados para la dirección y el monto
+  const [recipientAddress, setRecipientAddress] = useState('')
+  const [amount, setAmount] = useState('')
+
+  const handleSendTransaction = () => {
+    relaySendTransaction(recipientAddress, amount)
+  }
 
   // TODO: ADD PAY FEES USING USDC TOKEN
 
@@ -126,39 +136,76 @@ const RelayerKitDemo = () => {
                   disabled={!hasNativeFunds}
                   onClick={relayTransaction}
                 >
-                  Send Transaction
+                  Send Transaction%
                 </Button>
+                <Box display="flex" gap={3}>
+                  {!hasNativeFunds && (
+                    <Typography color="error">
+                      Insufficient funds. Send some funds to the Safe Account
+                    </Typography>
+                  )}
 
-                {!hasNativeFunds && (
-                  <Typography color="error">
-                    Insufficient funds. Send some funds to the Safe Account
-                  </Typography>
-                )}
+                  {!hasNativeFunds && chain?.faucetUrl && (
+                    <Link href={chain.faucetUrl} target="_blank">
+                      Request 0.5 {chain.token}.
+                    </Link>
+                  )}
+                  {/* Transaction details */}
+                  <Stack gap={0.5} display="flex" flexDirection="column">
+                    <Typography>
+                      Transfer {transferAmount} {chain?.token}
+                    </Typography>
 
-                {!hasNativeFunds && chain?.faucetUrl && (
-                  <Link href={chain.faucetUrl} target="_blank">
-                    Request 0.5 {chain.token}.
-                  </Link>
-                )}
+                    {safeSelected && (
+                      <Stack gap={0.5} display="flex" flexDirection="row">
+                        <AddressLabel address={safeSelected} showCopyIntoClipboardButton={false} />
+
+                        <ArrowRightAltRoundedIcon />
+
+                        <AddressLabel address={safeSelected} showCopyIntoClipboardButton={false} />
+                      </Stack>
+                    )}
+                  </Stack>
+
+                  
+                </Box>
+                {/* Nueva caja para enviar ETH */}
+                <ConnectedContainer
+                    display="flex"
+                    flex={2}
+                    flexDirection="column"
+                    gap={2}
+                    alignItems="flex-start"
+                    flexShrink={0}
+                  >
+                    <Typography fontWeight="700">Send {chain?.token}</Typography>
+
+                    <TextField
+                      label="Recipient Address"
+                      variant="outlined"
+                      fullWidth
+                      value={recipientAddress}
+                      onChange={(e) => setRecipientAddress(e.target.value)}
+                    />
+
+                    <TextField
+                      label="Amount to send"
+                      variant="outlined"
+                      fullWidth
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+
+                    <Button
+                      startIcon={<SendIcon />}
+                      variant="contained"
+                      onClick={handleSendTransaction}
+                    >
+                      Send
+                    </Button>
+                  </ConnectedContainer>
               </>
             )}
-
-            {/* Transaction details */}
-            <Stack gap={0.5} display="flex" flexDirection="column">
-              <Typography>
-                Transfer {transferAmount} {chain?.token}
-              </Typography>
-
-              {safeSelected && (
-                <Stack gap={0.5} display="flex" flexDirection="row">
-                  <AddressLabel address={safeSelected} showCopyIntoClipboardButton={false} />
-
-                  <ArrowRightAltRoundedIcon />
-
-                  <AddressLabel address={safeSelected} showCopyIntoClipboardButton={false} />
-                </Stack>
-              )}
-            </Stack>
           </ConnectedContainer>
         </Box>
       )}

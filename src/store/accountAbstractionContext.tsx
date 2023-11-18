@@ -32,6 +32,7 @@ type accountAbstractionContextValue = {
   safeBalance?: string
   setSafeSelected: React.Dispatch<React.SetStateAction<string>>
   isRelayerLoading: boolean
+  relaySendTransaction: (address: string, amount: string) => Promise<void>
   relayTransaction: () => Promise<void>
   gelatoTaskId?: string
   openStripeWidget: () => Promise<void>
@@ -55,7 +56,9 @@ const initialState = {
   openStripeWidget: async () => {},
   closeStripeWidget: async () => {},
   startMoneriumFlow: async () => {},
-  closeMoneriumFlow: () => {}
+  closeMoneriumFlow: () => {},
+  relaySendTransaction: async (address: string, amount: string) => {}
+
 }
 
 const accountAbstractionContext = createContext<accountAbstractionContextValue>(initialState)
@@ -300,6 +303,44 @@ const AccountAbstractionProvider = ({ children }: { children: JSX.Element }) => 
     setGelatoTaskId(undefined)
   }, [chainId])
 
+  // implement relay-kit using Gelatoto send eth to an address
+  const relaySendTransaction = async (address: string, amount: string) => {
+    if (!web3Provider || !safeSelected) {
+      console.error("Web3 provider or Safe not initialized");
+      return;
+    }
+  
+    try {
+      const signer = web3Provider.getSigner();
+      const relayPack = new GelatoRelayPack();
+      const safeAccountAbstraction = new AccountAbstraction(signer);
+  
+      await safeAccountAbstraction.init({ relayPack });
+  
+      const transactionData: MetaTransactionData[] = [
+        {
+          to: address,
+          data: '0x',
+          value: utils.parseUnits(amount, 'ether').toString(),
+          operation: 0, // OperationType.Call
+        },
+      ];
+  
+      const options: MetaTransactionOptions = {
+        isSponsored: false,
+        gasLimit: '600000', // In this alpha version we need to manually set the gas limit
+        gasToken: ethers.constants.AddressZero, // Native token
+      };
+  
+      const gelatoTaskId = await safeAccountAbstraction.relayTransaction(transactionData, options);
+  
+      console.log(`Transaction relayed with Gelato Task ID: ${gelatoTaskId}`);
+    } catch (error) {
+      console.error(`Error relaying transaction: ${error}`);
+    }
+  };
+  
+
   // relay-kit implementation using Gelato
   const relayTransaction = async () => {
     if (web3Provider) {
@@ -402,6 +443,7 @@ const AccountAbstractionProvider = ({ children }: { children: JSX.Element }) => 
 
     isRelayerLoading,
     relayTransaction,
+    relaySendTransaction,
     gelatoTaskId,
 
     openStripeWidget,
